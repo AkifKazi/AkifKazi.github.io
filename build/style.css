@@ -8,7 +8,7 @@
   --text:#1B2734;--strong:#0B1520;--muted:#4C5C6C;
   --line:rgba(18,40,64,.13);--line2:rgba(18,40,64,.27);
   --accent:#2A5680;--accent2:#3A6C98;--ink:#fff;--green:#2A7A57;
-  --btn:linear-gradient(100deg,#2C4C6C,#37618A);--drop:rgba(28,52,78,.3);--drop-top:rgba(28,52,78,.14);
+  --btn:linear-gradient(100deg,#2C4C6C,#37618A);--drop-rgb:28 52 78;--drop-a:.2;
 --echo:rgba(42,86,128,.13);--echo-hi:rgba(42,86,128,.45);
   --sel:rgba(58,108,152,.2);--media:#141B23;--room-o:.72;--tri-o:.5;
   --shade:0 16px 32px -24px rgba(16,42,70,.45);
@@ -57,7 +57,7 @@ img,video,svg{max-width:100%}
 .btn.primary,.yt-play{border:0;color:#fff;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.2) 50%,transparent 70%) -150% 0/55% 100% no-repeat,var(--btn)}
 .btn.primary{padding:0 21px}
 /* shadow bands exactly as wide as the button: a short one above, a longer one falling straight down */
-.drop{position:absolute;left:0;right:0;top:-4px;bottom:calc(-1 * var(--drop-h,13px));pointer-events:none;background:linear-gradient(0deg,var(--drop-top),transparent) top/100% 4px no-repeat,linear-gradient(180deg,var(--drop),transparent) bottom/100% var(--drop-h,13px) no-repeat}
+.drop{position:absolute;left:0;right:0;top:-5px;bottom:calc(-1 * var(--drop-h,18px));pointer-events:none;background:linear-gradient(0deg,rgb(var(--drop-rgb) / calc(var(--drop-a) * .45)),rgb(var(--drop-rgb) / calc(var(--drop-a) * .12)) 45%,transparent) top/100% 5px no-repeat,linear-gradient(180deg,rgb(var(--drop-rgb) / var(--drop-a)),rgb(var(--drop-rgb) / calc(var(--drop-a) * .62)) 18%,rgb(var(--drop-rgb) / calc(var(--drop-a) * .3)) 42%,rgb(var(--drop-rgb) / calc(var(--drop-a) * .1)) 68%,transparent) bottom/100% var(--drop-h,18px) no-repeat}
 .btn.primary:focus-visible{outline-offset:4px}
 .btn::before,.btn::after,.frame::before,.frame::after,.pagelink::before,.pagelink::after,.pager a::before,.pager a::after{content:"";position:absolute;width:10px;height:10px;border:0 solid var(--accent);opacity:0;transition:opacity .2s,transform .3s var(--ease);pointer-events:none}
 .btn::before,.frame::before,.pagelink::before,.pager a::before{top:-6px;left:-6px;border-width:1.5px 0 0 1.5px;transform:translate(5px,5px)}
@@ -65,7 +65,7 @@ img,video,svg{max-width:100%}
 .btn:focus-visible::before,.btn:focus-visible::after,.card:focus-visible .frame::before,.card:focus-visible .frame::after,.pagelink:focus-visible::before,.pagelink:focus-visible::after,.pager a:focus-visible::before,.pager a:focus-visible::after{opacity:1;transform:none}
 .btn:active,.card:active,.pagelink:active,.pager a:active{transform:scale(.985)}
 .actions{display:flex;flex-wrap:wrap;gap:22px 12px;margin:28px 0 0;padding:0;list-style:none}
-@media (max-width:639px){.actions{--drop-h:9px}}
+@media (max-width:639px){.actions{--drop-h:12px}}
 
 /* ---------- header (home, and articles below desktop width) ---------- */
 .top{position:relative;z-index:5}
@@ -380,7 +380,6 @@ html:not(.js) .progress,html:not(.js) .rail-progress{display:none}
      into the faint offset echo the game's menu text has */
   .ahead h1,.name{-webkit-mask:linear-gradient(90deg,#000 40%,transparent 60%) 100% 0/260% 100% no-repeat;mask:linear-gradient(90deg,#000 40%,transparent 60%) 100% 0/260% 100% no-repeat;animation:resolve 1.1s cubic-bezier(.3,.6,.2,1) .1s both,echo 1.6s cubic-bezier(.2,.7,.2,1) .1s both}
   .btn.primary,.yt-play{animation:sheen 8s var(--ease) 1.4s infinite}
-  .drop{animation:dropbreathe 8s ease-in-out infinite}
   .bg-room{animation:breathe 46s ease-in-out infinite alternate}
   .bg-tri{animation:drift 64s ease-in-out infinite alternate}
 }
@@ -388,7 +387,6 @@ html:not(.js) .progress,html:not(.js) .rail-progress{display:none}
 @keyframes resolve{from{-webkit-mask-position:100% 0;mask-position:100% 0}to{-webkit-mask-position:0 0;mask-position:0 0}}
 @keyframes echo{from{text-shadow:.5em 0 0 var(--echo-hi)}to{text-shadow:.045em .045em 0 var(--echo)}}
 @keyframes sheen{0%{background-position:-150% 0,0 0}35%,100%{background-position:250% 0,0 0}}
-@keyframes dropbreathe{0%,100%{background-size:100% 4px,100% var(--drop-h,13px)}50%{background-size:100% 4px,100% calc(var(--drop-h,13px) + 3px)}}
 @keyframes breathe{from{transform:scale(1.02) translate3d(0,0,0)}to{transform:scale(1.1) translate3d(-2%,1%,0)}}
 @keyframes drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(2.5%,-1.5%,0)}}
 
