@@ -1,0 +1,7 @@
+color-scheme:dark;
+--bg1:#0C141D;--bg2:#070B11;--glow:rgba(64,124,186,.30);
+--surface:#101A25;--surface2:#16232F;
+--text:#D3E0EC;--strong:#fff;--muted:#8CA2B7;
+--line:rgba(140,185,230,.17);--hi:rgba(255,255,255,.12);
+--accent:#86C1F0;--accent2:#5AA4E0;--accent-ink:#06121D;
+--shadow:inset 0 1px 0 var(--hi),0 0 0 1px var(--line),0 18px 36px -22px rgba(0,0,0,.9);

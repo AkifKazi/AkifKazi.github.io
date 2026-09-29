@@ -1,0 +1,17 @@
+{
+  "name": "Akif Kazi",
+  "tagline": "Interaction Designer",
+  "description": "Portfolio of Akif Kazi, a Mumbai based interaction designer. Case studies in UI/UX, IoT and immersive design.",
+  "url": "https://akifkazi.github.io",
+  "email": "create@akifkazi.in",
+  "resume": "notes/resume/akif-for-designers.pdf",
+  "links": [
+    { "label": "LinkedIn", "href": "https://www.linkedin.com/in/akif-faruk-kazi/" },
+    { "label": "Instagram", "href": "https://www.instagram.com/designer_akifkazi/" },
+    { "label": "Mastodon", "href": "https://mastodon.social/@unofutaba", "rel": "me" },
+    { "label": "Bluesky", "href": "https://bsky.app/profile/unofutaba.bsky.social" },
+    { "label": "Behance", "href": "https://www.behance.net/akifkazi" }
+  ],
+  "license": { "label": "CC BY-NC-ND 4.0", "href": "https://creativecommons.org/licenses/by-nc-nd/4.0/" },
+  "analytics": { "clarity": "", "ga": "" }
+}
