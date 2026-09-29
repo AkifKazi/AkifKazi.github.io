@@ -3,7 +3,7 @@
 Static site built from Markdown in `content/`. No framework in the browser; pages are plain HTML.
 
 ## Edit
-- **Home intro:** `content/home.md` (its `facts` list is the strip under your name; any body text shows above it). Links, email, analytics IDs, site URL: `site.config.json`.
+- **Home intro:** `content/home.md` (its `facts` list is the strip under your name; any body text shows above it). Links, email, GoatCounter name, site URL: `site.config.json`.
 - **Project / note:** a folder with an `index.md` and its images, e.g. `content/notes/my-note/index.md`.
   Projects go in `content/projects/`, smaller pieces in `content/notes/`. Open `content/` as an Obsidian vault if you like.
 - **Front matter** (top of `index.md`): `title`, `description`, `year`, `tags`, `role`, `order` (lower = earlier), `prototype` (Figma link), `videos` (YouTube links), `cover` (image for the card).

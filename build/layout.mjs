@@ -28,18 +28,25 @@ export const themeButton = `<button class="theme" type="button" aria-label="Swit
 // Primary buttons carry a straight-down shadow like the game's selected bar.
 export const drop = '<span class="drop" aria-hidden="true"></span>';
 
-// Microsoft Clarity (scroll depth, time on page, click maps), loaded only after the visitor accepts.
-// The choice is remembered in localStorage; with no Clarity ID configured nothing is added at all.
-export function analyticsSnippet({ clarity }) {
-  if (!clarity) return '';
-  const load = `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script",${JSON.stringify(clarity)});`;
-  return `<script>(function(){var K='analytics-consent',v;try{v=localStorage.getItem(K)}catch(e){}
-function go(){${load}}
-if(v==='yes')return go();if(v==='no')return;
-var b=document.createElement('div');b.className='consent';b.setAttribute('role','region');b.setAttribute('aria-label','Analytics');
-b.innerHTML='<p>This site uses Microsoft Clarity to see how far people scroll and where they click. It sets cookies. Fine with that?</p><div class="consent-b"><button type="button" data-v="yes">Accept</button><button type="button" data-v="no">Decline</button></div>';
-b.addEventListener('click',function(e){var t=e.target.closest('button');if(!t)return;var a=t.dataset.v;try{localStorage.setItem(K,a)}catch(e){}b.remove();if(a==='yes')go()});
-document.body.appendChild(b)})();</script>`;
+// GoatCounter: cookieless, no consent notice needed. Page views come from its own script; the inline part adds
+// scroll-depth, time-on-page and click events (they show under "events" in the dashboard).
+export function analyticsSnippet({ goatcounter }) {
+  if (!goatcounter) return '';
+  const code = String(goatcounter).replace(/[^a-z0-9-]/gi, '');
+  return `<script data-goatcounter="https://${code}.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script>(function(){var w=window,d=document,P=location.pathname;
+function ev(n){var t=0;(function r(){if(w.goatcounter&&w.goatcounter.count)w.goatcounter.count({path:n+' '+P,title:n,event:true});else if(t++<20)setTimeout(r,500)})()}
+var seen={},marks=[25,50,75,100];
+function sc(){var h=d.documentElement,max=h.scrollHeight-w.innerHeight,p=max<=0?100:Math.min(100,(w.scrollY||w.pageYOffset)/max*100);
+marks.forEach(function(m){if(!seen[m]&&p>=(m===100?98:m)){seen[m]=1;ev('scroll-'+m)}})}
+w.addEventListener('scroll',sc,{passive:true});sc();
+var sec=0,steps={15:'15s',30:'30s',60:'60s',120:'2min',300:'5min'};
+setInterval(function(){if(d.visibilityState!=='visible')return;sec++;if(steps[sec])ev('time-'+steps[sec])},1000);
+d.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[href]');if(!a)return;var h=a.getAttribute('href')||'';
+if(/^mailto:/i.test(h))return ev('click-email');
+if(/\.pdf($|[?#])/i.test(h))return ev('click-pdf '+h.split('/').pop().split(/[?#]/)[0]);
+if(a.host&&a.host!==location.host)ev('click-out '+a.host.replace(/^www\./,''))});
+})();</script>`;
 }
 
 export function header({ site, home, resume, current, minimal = false }) {
