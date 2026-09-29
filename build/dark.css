@@ -4,7 +4,7 @@ color-scheme:dark;
 --text:#D3DCE5;--strong:#F3F7FA;--muted:#8D9CAC;
 --line:rgba(150,185,220,.14);--line2:rgba(150,185,220,.3);
 --accent:#74B5EE;--accent2:#A2CEF5;--ink:#06101A;--green:#5EC39B;
---sel:rgba(116,181,238,.28);--media:#121A23;
+--sel:rgba(116,181,238,.28);--media:#121A23;--room-o:.9;--tri-o:.8;--halo:rgba(90,160,225,.55);
 --shade:0 18px 36px -24px rgba(0,0,0,.9);
 --tri:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 1000' preserveAspectRatio='xMidYMid slice'><g fill='%23fff'><path d='M-240 1000 380 -80 1000 1000z' fill-opacity='.022'/><path d='M880 -80h960L1360 760z' fill-opacity='.028'/><path d='M1120 1000 1480 360 1840 1000z' fill-opacity='.02'/></g><g fill='%2374B5EE'><path d='M220 -80h560L500 420z' fill-opacity='.035'/><path d='M660 1000 1040 400 1420 1000z' fill-opacity='.03'/></g></svg>");
 --glow:radial-gradient(70% 55% at 50% -10%,rgba(80,140,200,.16),transparent 70%);

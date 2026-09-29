@@ -18,7 +18,7 @@ const client = fs.readFileSync(path.join(HERE, 'client.js'), 'utf8').replace(/^\
 // Light unless the visitor picked dark with the toggle.
 const THEME_INIT = `document.documentElement.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}`;
 
-const MARK = `<svg class="logo" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" aria-hidden="true"><path d="M8 12h16M16 6.5v19M16 14 8.5 24M16 14l7.5 10"/></svg>`;
+export const MARK_SVG = `<svg class="logo" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" aria-hidden="true"><path d="M8 12h16M16 6.5v19M16 14 8.5 24M16 14l7.5 10"/></svg>`;
 
 export function analyticsSnippet({ clarity, ga }) {
   if (!clarity && !ga) return '';
@@ -37,10 +37,10 @@ export function header({ site, home, resume, current }) {
   ].filter(Boolean);
   return `<a class="skip" href="#main">Skip to content</a>
 <header class="top"><div class="top-in">
-<a class="mark" href="${home}" aria-label="${esc(site.name)}, home">${MARK}<span class="mark-t"><b>${esc(site.name.split(' ')[0])}</b> ${esc(site.name.split(' ').slice(1).join(' '))}</span></a>
+<a class="mark" href="${home}" aria-label="${esc(site.name)}, home">${MARK_SVG}<span class="mark-t"><b>${esc(site.name.split(' ')[0])}</b> ${esc(site.name.split(' ').slice(1).join(' '))}</span></a>
 <span class="top-line" aria-hidden="true"></span>
 <nav class="nav" aria-label="Main">${nav.map(([h, l]) => `<a href="${h}"${current === l ? ' aria-current="page"' : ''}>${l}</a>`).join('')}</nav>
-<button class="theme" id="theme" type="button" aria-label="Switch to dark theme" title="Switch theme">${icon('dark_mode', 'to-dark')}${icon('light_mode', 'to-light')}</button>
+<button class="theme" type="button" aria-label="Switch to dark theme" title="Switch theme">${icon('dark_mode', 'to-dark')}${icon('light_mode', 'to-light')}</button>
 </div></header>`;
 }
 
@@ -51,7 +51,6 @@ export function footer(site, year, copyright) {
   ];
   const note = copyright ? esc(copyright.replace(/\s*All rights reserved\.?$/, '')).trim() : `© ${year} ${esc(site.name)}.`;
   return `<footer class="foot"><div class="foot-in">
-<p class="foot-k" aria-hidden="true"><span>End of file</span><span class="foot-line"></span></p>
 <ul class="links">${links.map((l) => `<li>${l}</li>`).join('')}</ul>
 <p class="legal">${note} Licensed <a href="${esc(site.license.href)}" rel="license">${esc(site.license.label)}</a></p>
 </div></footer>`;
@@ -77,10 +76,11 @@ export function layout({ site, title, description, canonical, ogImage, ogType = 
 ${meta('og:type', ogType)}${meta('og:site_name', site.name)}${meta('og:title', title)}${meta('og:description', description)}${meta('og:url', canonical)}${ogImage ? meta('og:image', ogImage) + meta('og:image:width', '1200') + meta('og:image:height', '630') : ''}
 ${meta('twitter:card', 'summary_large_image', 'name')}${meta('twitter:title', title, 'name')}${meta('twitter:description', description, 'name')}${ogImage ? meta('twitter:image', ogImage, 'name') : ''}${extraHead}
 <script>${THEME_INIT}</script>
-<style>@font-face{font-family:Montserrat;src:url(${base}/fonts/montserrat-latin.woff2) format("woff2");font-weight:300 700;font-style:normal;font-display:swap}${css}</style>
+<style>@font-face{font-family:Montserrat;src:url(${base}/fonts/montserrat-latin.woff2) format("woff2");font-weight:300 700;font-style:normal;font-display:swap}:root{--room:url(${base}/bg/room-light.webp)}:root[data-theme="dark"]{--room:url(${base}/bg/room-dark.webp)}${css}</style>
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head>
 <body${bodyClass ? ` class="${bodyClass}"` : ''}>
+<div class="bg" aria-hidden="true"><div class="bg-l bg-l1"><div class="bg-room"></div></div><div class="bg-l bg-l2"><div class="bg-tri"></div></div></div>
 ${body}
 <script>var THEME_COLORS={light:${JSON.stringify(LIGHT)},dark:${JSON.stringify(DARK)}};
 ${client}</script>

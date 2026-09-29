@@ -172,10 +172,7 @@ export function createMarkdown() {
       for (let n = 2; seen.has(id); n++) id = `${base}-${n}`;
       seen.add(id);
       t[i].attrSet('id', id);
-      if (t[i].tag === 'h2') {
-        env.toc.push({ id, text });
-        t[i].attrSet('data-n', String(env.toc.length).padStart(2, '0'));
-      }
+      if (t[i].tag === 'h2') env.toc.push({ id, text });
     }
   });
 
@@ -217,7 +214,7 @@ export function createMarkdown() {
   };
   r.pagelink = (tokens, idx, o, env) => {
     const { href, text } = tokens[idx].meta;
-    return `<p class="pagelink-wrap"><a class="pagelink" href="${esc(href)}">${icon('menu_book')}<span><span class="pl-k">Sub-page</span><span class="pl-t">${md.renderInline(text, env)}</span></span>${icon('arrow_forward', 'pl-go')}</a></p>\n`;
+    return `<p class="pagelink-wrap"><a class="pagelink" href="${esc(href)}">${icon('menu_book')}<span class="pl-t">${md.renderInline(text, env)}</span>${icon('arrow_forward', 'pl-go')}</a></p>\n`;
   };
   r.figma = (tokens, idx, o, env) => {
     const { href, text } = tokens[idx].meta;
@@ -236,7 +233,7 @@ export function createMarkdown() {
     const info = env.assets.get(decodeURI(src));
     const first = !env.gallery && env.figureCount++ === 0 && !env.hasVideos;
     // the inner <p> lets reader views (which only score paragraphs) find image-led pages
-    const figcap = caption ? `<figcaption data-n="${String((env.figN = (env.figN || 0) + 1)).padStart(2, '0')}"><p>${caption}</p></figcaption>` : '';
+    const figcap = caption ? `<figcaption><p>${caption}</p></figcaption>` : '';
 
     if (!info) return `<figure><img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async">${figcap}</figure>\n`;
 

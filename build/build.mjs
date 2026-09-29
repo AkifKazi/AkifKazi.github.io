@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import matter from 'gray-matter';
 import sharp from 'sharp';
 import { createMarkdown, esc, preprocess, slugify, youtubeId } from './render.mjs';
-import { footer, header, layout } from './layout.mjs';
+import { footer, header, layout, MARK_SVG } from './layout.mjs';
 import { icon } from './icons.mjs';
 
 const run = promisify(execFile);
@@ -30,7 +30,6 @@ const exists = (p) => fs.existsSync(p);
 const mtime = (p) => fs.statSync(p).mtimeMs;
 const fresh = (out, src) => exists(out) && mtime(out) >= mtime(src);
 const mkdir = (p) => fsp.mkdir(p, { recursive: true });
-const pad = (n) => String(n).padStart(2, '0');
 
 async function pool(items, n, fn) {
   const q = [...items];
@@ -258,9 +257,9 @@ function coverTag(c, sizes) {
   return `<picture class="thumb"><img src="${dir}${c.file}" width="${c.w}" height="${c.h}" alt="" loading="lazy" decoding="async"></picture>`;
 }
 
-const card = (p, i, kind) => {
+const card = (p, kind) => {
   const sizes = kind === 'project' ? '(min-width: 1280px) 400px, (min-width: 720px) 48vw, calc(100vw - 32px)' : '(min-width: 1280px) 290px, (min-width: 720px) 31vw, 46vw';
-  return `<li><a class="card" href="${href(p.route)}"><span class="frame" aria-hidden="true"></span>${coverTag(p.cover, sizes)}<div class="body"><p class="card-k"><span class="idx">${pad(i + 1)}</span>${p.year ? `<span>${p.year}</span>` : ''}</p><h3>${esc(p.title)}</h3>${kind === 'project' ? `<p class="desc">${esc(p.description)}</p>` : ''}${kind === 'project' && p.tags.length ? `<p class="tags">${p.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</p>` : ''}</div></a></li>`;
+  return `<li><a class="card" href="${href(p.route)}"><span class="frame" aria-hidden="true"></span>${coverTag(p.cover, sizes)}<div class="body"><h3>${esc(p.title)}</h3>${p.year ? `<p class="card-k">${p.year}</p>` : ''}${kind === 'project' ? `<p class="desc">${esc(p.description)}</p>` : ''}${kind === 'project' && p.tags.length ? `<p class="tags">${p.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</p>` : ''}</div></a></li>`;
 };
 
 /* ---------- build ---------- */
@@ -296,22 +295,19 @@ const top = (current) => header({ site, home: href(), resume, current });
 const facts = (home.data.facts || []).map((f) => (Array.isArray(f) ? f : [f.label, f.value]));
 const [first, ...rest] = site.name.split(' ');
 const actions = `<ul class="actions">${resume ? `<li><a class="btn primary" href="${resume}">${icon('description')}<span>Resume</span></a></li>` : ''}<li><a class="btn" href="mailto:${esc(site.email)}">${icon('mail')}<span>Email</span></a></li><li><a class="btn" href="${esc(site.links[0].href)}"><span>${esc(site.links[0].label)}</span>${icon('arrow_outward')}</a></li></ul>`;
-const sectionHead = (n, label, count, id) => `<h2 class="label" id="${id}"><span class="label-n">${pad(n)}</span><span class="label-t">${label}</span><span class="label-line" aria-hidden="true"></span><span class="label-c">${pad(count)} entries</span></h2>`;
+const sectionHead = (label, id) => `<h2 class="label" id="${id}"><span class="label-t">${label}</span><span class="label-line" aria-hidden="true"></span></h2>`;
 
 const homeBody = `${top('')}
 <main id="main" class="home">
 <section class="hero">
-<div class="hero-main">
-<p class="eyebrow"><span>Portfolio</span><span class="eyebrow-n">${year}</span></p>
 <h1 class="name"><span class="n1">${esc(first)}</span> <span class="n2">${esc(rest.join(' '))}</span></h1>
 <p class="role">${esc(site.tagline)}</p>
-<div class="lead">${homeHtml}</div>
+${homeHtml.trim() ? `<div class="lead">${homeHtml}</div>` : ''}
+${facts.length ? `<dl class="status">${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
 ${actions}
-</div>
-${facts.length ? `<dl class="status" aria-label="At a glance">${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
 </section>
-<section class="shelf">${sectionHead(1, 'Projects', projects.length, 'projects')}<ul class="grid projects">${projects.map((p, i) => card(p, i, 'project')).join('')}</ul></section>
-<section class="shelf">${sectionHead(2, 'Notes', notes.length, 'notes')}<ul class="grid notes">${notes.map((p, i) => card(p, i, 'note')).join('')}</ul></section>
+<section class="shelf">${sectionHead('Projects', 'projects')}<ul class="grid projects">${projects.map((p) => card(p, 'project')).join('')}</ul></section>
+<section class="shelf">${sectionHead('Notes', 'notes')}<ul class="grid notes">${notes.map((p) => card(p, 'note')).join('')}</ul></section>
 </main>
 ${footer(site, year)}`;
 await write('index.html', layout({
@@ -323,47 +319,64 @@ await write('index.html', layout({
 }));
 
 // content pages
+const navItems = (current) => [
+  [`${href()}#projects`, 'Projects'],
+  [`${href()}#notes`, 'Notes'],
+  resume && [resume, 'Resume'],
+].filter(Boolean).map(([h, l]) => `<a href="${h}"${current === l ? ' aria-current="page"' : ''}>${l}</a>`).join('');
+const themeBtn = `<button class="theme" type="button" aria-label="Switch to dark theme" title="Switch theme">${icon('dark_mode', 'to-dark')}${icon('light_mode', 'to-light')}</button>`;
+const pagerLink = (x, dir) => x ? `<a class="pg-${dir}" href="${x.href}" rel="${dir}">${icon(dir === 'prev' ? 'arrow_back' : 'arrow_forward')}<span><span class="pg-k">${x.k}</span><b>${esc(x.t)}</b></span></a>` : '';
+
 for (const p of pages) {
   const parent = p.parent && byRoute.get(p.parent);
   const og = await ogFor(p);
   const list = p.section === 'projects' ? projects : notes;
   const idx = list.indexOf(p);
-  const kind = parent ? parent.title : p.section === 'projects' ? 'Project' : 'Note';
+  const noun = p.section === 'projects' ? 'project' : 'note';
+  const current = p.section === 'projects' ? 'Projects' : p.route === resumePage?.route ? 'Resume' : 'Notes';
   const meta = [
     p.role && ['Role', esc(p.role)],
     p.year && ['Year', p.year],
     p.tags.length && ['Tags', p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')],
   ].filter(Boolean);
+  const metaDl = meta.length ? `<dl class="meta">${meta.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>` : '';
   const vids = p.videos.map((v, i) => {
     const th = p.env.yt.get(v.id);
     return `<div class="yt"><a href="https://youtu.be/${v.id}${v.t ? `?t=${v.t}` : ''}" data-yt="${v.id}"${v.t ? ` data-t="${v.t}"` : ''} aria-label="Play video on YouTube">${th ? `<img src="${th.file}" width="${th.w}" height="${th.h}" alt="" decoding="async" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}>` : ''}<span class="yt-play">${icon('play_arrow')}</span></a></div>`;
   }).join('');
-  const toc = p.toc.length >= 3 ? `<nav class="toc" role="navigation" aria-label="On this page"><p class="toc-k"><span>Contents</span><span class="toc-pct" aria-hidden="true">0%</span></p><ol>${p.toc.map((t) => `<li><a href="#${t.id}">${esc(t.text)}</a></li>`).join('')}</ol></nav>` : '';
-  let next = null;
-  if (parent) next = { href: href(parent.route), k: 'Back to', t: parent.title, icon: 'arrow_back' };
-  else if (idx >= 0 && list.length > 1) {
-    const n = list[(idx + 1) % list.length];
-    next = { href: href(n.route), k: idx + 1 === list.length ? `Back to first ${p.section === 'projects' ? 'project' : 'note'}` : `Next ${p.section === 'projects' ? 'project' : 'note'}`, t: n.title, icon: 'keyboard_return' };
-  }
-  const cont = next ? `<nav class="continue" role="navigation" aria-label="Continue reading"><a href="${next.href}"><span class="cont-k">${icon(next.icon)}<span>Continue</span></span><span class="cont-t"><span>${next.k}</span><b>${esc(next.t)}</b></span></a></nav>` : '';
-  const body = `${top(p.section === 'projects' ? 'Projects' : p.route === resumePage?.route ? 'Resume' : 'Notes')}
-<div class="progress" aria-hidden="true"></div>
-<main id="main" class="page${toc ? ' has-toc' : ''}">
+  const toc = p.toc.length >= 3 ? `<nav class="toc" role="navigation" aria-label="On this page"><ol>${p.toc.map((t) => `<li><a href="#${t.id}">${esc(t.text)}</a></li>`).join('')}</ol></nav>` : '';
+  // previous / next within the section (no wrap-around); sub-pages lead back to their parent
+  const prev = parent ? { href: href(parent.route), k: 'Back to', t: parent.title } : idx > 0 ? { href: href(list[idx - 1].route), k: `Previous ${noun}`, t: list[idx - 1].title } : null;
+  const next = !parent && idx >= 0 && idx < list.length - 1 ? { href: href(list[idx + 1].route), k: `Next ${noun}`, t: list[idx + 1].title } : null;
+  const pager = prev || next ? `<nav class="pager" role="navigation" aria-label="More ${noun}s">${pagerLink(prev, 'prev')}${pagerLink(next, 'next')}</nav>` : '';
+  const body = `${top(current)}
+<div class="progress" data-progress aria-hidden="true"></div>
+<div class="shell">
+<aside class="rail rail-l" role="complementary" aria-label="Page">
+<a class="mark" href="${href()}" aria-label="${esc(site.name)}, home">${MARK_SVG}<span class="mark-t"><b>${esc(first)}</b> ${esc(rest.join(' '))}</span></a>
+${toc}
+<div class="rail-progress" aria-hidden="true"><span class="pct">0%</span><span class="rail-bar" data-progress></span></div>
+</aside>
+<main id="main" class="page">
 <article class="article">
 <header class="ahead">
 ${parent ? `<p class="crumb"><a href="${href(parent.route)}">${icon('arrow_back')}${esc(parent.title)}</a></p>` : ''}
-<p class="eyebrow"><span>${esc(kind)}</span>${idx >= 0 && !parent ? `<span class="eyebrow-n">${pad(idx + 1)} / ${pad(list.length)}</span>` : ''}</p>
 <h1>${esc(p.title)}</h1>
-<div class="ahead-grid"><div class="ahead-main">${p.hasDesc ? `<p class="lead">${esc(p.description)}</p>` : ''}${p.prototype ? `<p class="actions"><a class="btn primary" href="${esc(p.prototype)}">${icon('touch_app')}<span>Open Figma prototype</span>${icon('arrow_outward')}</a></p>` : ''}</div>${meta.length ? `<dl class="meta">${meta.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>` : ''}</div>
+<div class="ahead-grid"><div class="ahead-main">${p.hasDesc ? `<p class="lead">${esc(p.description)}</p>` : ''}${p.prototype ? `<p class="actions"><a class="btn primary" href="${esc(p.prototype)}">${icon('touch_app')}<span>Open Figma prototype</span>${icon('arrow_outward')}</a></p>` : ''}</div>${metaDl}</div>
 </header>
 ${vids ? `<div class="hero-media">${vids}</div>` : ''}
 <div class="prose">
 ${p.html}
 </div>
 </article>
-${toc}
 </main>
-${cont ? `<div class="page page-end${toc ? ' has-toc' : ''}">${cont}</div>` : ''}
+<aside class="rail rail-r" role="complementary" aria-label="Site">
+<div class="rail-top"><nav class="rail-nav" aria-label="Main">${navItems(current)}</nav>${themeBtn}</div>
+<div class="rail-info"><p class="rail-k">${esc(parent ? parent.title : p.section === 'projects' ? 'Project' : 'Note')}</p><p class="rail-t">${esc(p.title)}</p>${metaDl}</div>
+${prev || next ? `<nav class="rail-pager" aria-label="More ${noun}s">${pagerLink(prev, 'prev')}${pagerLink(next, 'next')}</nav>` : ''}
+</aside>
+</div>
+${pager}
 ${footer(site, year, p.copyright)}`;
   await write(`${p.route}/index.html`, layout({
     site, base, body, bodyClass: 'is-article',
@@ -378,7 +391,7 @@ ${footer(site, year, p.copyright)}`;
 // static + generated files
 await write('404.html', layout({
   site, base, title: `Not found — ${site.name}`, description: 'Page not found.', canonical: abs(), bodyClass: 'is-article',
-  body: `${top('')}<main id="main" class="page"><article class="article"><header class="ahead"><p class="eyebrow"><span>Error</span><span class="eyebrow-n">404</span></p><h1>Page not found</h1><div class="ahead-grid"><div class="ahead-main"><p class="lead">This page doesn’t exist, or it moved.</p><p class="actions"><a class="btn primary" href="${href()}">${icon('arrow_back')}<span>Home</span></a></p></div></div></header></article></main>${footer(site, year)}`,
+  body: `${top('')}<main id="main" class="page"><article class="article"><header class="ahead"><h1>Page not found</h1><div class="ahead-grid"><div class="ahead-main"><p class="lead">This page doesn’t exist, or it moved.</p><p class="actions"><a class="btn primary" href="${href()}">${icon('arrow_back')}<span>Home</span></a></p></div></div></header></article></main>${footer(site, year)}`,
 }));
 await write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${['', ...pages.map((p) => p.route)].map((r) => `<url><loc>${abs(r)}</loc></url>`).join('\n')}\n</urlset>\n`);
 await write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`);

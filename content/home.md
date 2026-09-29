@@ -1,12 +1,9 @@
 ---
 title: Akif Kazi — Interaction Designer
-description: Portfolio of Akif Kazi, a Mumbai based interaction designer. Case studies in UI/UX, IoT and immersive design.
-# Rows in the "Profile" panel on the home page
+description: Portfolio of Akif Kazi, a Mumbai based interaction designer who previously worked at Siemens and is pursuing a Master of Design at IIT Jodhpur. Case studies in UI/UX, IoT and immersive design.
+# Rows under the name on the home page
 facts:
   - [Based in, Mumbai]
   - [Studying, "Master of Design, IIT Jodhpur"]
   - [Previously, Siemens]
-  - [Focus, "UI/UX, IoT, immersive design"]
 ---
-
-Akif Kazi is a Mumbai based Interaction Designer who previously worked at SIEMENS and is currently pursuing his masters in design from IIT Jodhpur.
