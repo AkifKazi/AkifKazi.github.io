@@ -28,9 +28,9 @@ Can’t the bank look at our bank account data, our spendings and salary deposit
 
 Its a more convenient (for the urban users) and traceable method to verify an applicant
 
-#### UPI shook the banking and finance sector, India is leading cashless transactions (GoI PIB, 2025)
+#### UPI shook the banking and finance sector, India is leading cashless transactions <small>(GoI PIB, 2025)</small>
 
-Younger audience especially prefer using UPI over carrying cash (MoSPI, 2025), many Institutions and organisations are increasingly adapting cashless transactions in their premises as well (KSRTC, 2025). We need such kind of dramatic change in loans as the current model is simply too roundabout and complex, requiring multiple rounds of checks and verifications from different bodies, and endless forms.
+Younger audience especially prefer using UPI over carrying cash <small>(MoSPI, 2025)</small>, many Institutions and organisations are increasingly adapting cashless transactions in their premises as well <small>(KSRTC, 2025)</small>. We need such kind of dramatic change in loans as the current model is simply too roundabout and complex, requiring multiple rounds of checks and verifications from different bodies, and endless forms.
 
 Such questions and thought process lead me to making a newer version of the HDFC Home Loans application (for sanction letter).
 
@@ -73,18 +73,17 @@ Desktop → Friction due to redundancy and repetition
 
 ---
 
-## Personas
+::: toggle ## Personas
 
-### Primary Persona
-First Time Home Buyer
+### <small>Primary Persona</small> First Time Home Buyer
 
 Rahul Mehta is a 29 y.r software engineer from Pune earning ₹18L p.a.
 
-Mental model 
+##### Mental model
 
 Banking is an invisible utility he relies on. He sees loans as tools to execute decisions already made, not products to evaluate, and blames institutions when friction arises.
 
-Usage Context
+##### Usage Context
 
 Applies on mobile during short windows but hesitates to commit there. Regular CRED and Zerodha user. Expectations shaped by seamless UPI and investing apps, not traditional banking.
 
@@ -94,7 +93,7 @@ Applies on mobile during short windows but hesitates to commit there. Regular CR
 | Get a sanction letter  | Not be surprised by mid-flow requirements | Reduce monthly outflow vs rent |
 | Know the monthly cost | Feel process proportionate to stakes | Build financial independence |
 
-Observed Behaviours
+##### Observed Behaviours
 
 Compares rates across HDFC, SBI, and aggregators like BankBazaar before opening any app.
 
@@ -102,7 +101,7 @@ Uses EMI calculators as a primary decision tool, not just reference.
 
 Calls helpline only as a last resort, prefers to resolve independently.
 
-Critical Pain Points
+##### Critical Pain Points
 
 Jargon without tooltips: 'LTV ratio', 'FOIR', 'co-obligation' appear without explanation.
 
@@ -110,16 +109,15 @@ No progress indicator that accounts for 'async' steps (bank review, verification
 
 ---
 
-### Secondary Persona
-Experienced but Anxious Re-applicant
+### <small>Secondary Persona</small> Experienced but Anxious Re-applicant
 
 Sunita Rao is a 44 y.o school principal from Bengaluru earning ₹28L p.a.
 
-Mental Model
+##### Mental Model
 
 Banking signals risk to Sunita, mistakes feel consequential. With prior loan experience, she equates complexity with legitimacy, so unusually fast, simple flows raise concern. Seriousness must match the decision’s weight is her benchmark.
 
-Usage Context
+##### Usage Context
 
 Uses desktop to submit, mobile to track status. Cross-checks on paper (prints, notes) and has a joint application with her husband. Seeks reassurance via branch calls. Past loan experience (marked by repeated document requests) drives her anxiety.
 
@@ -129,7 +127,7 @@ Uses desktop to submit, mobile to track status. Cross-checks on paper (prints, n
 | Have clear audit trail of things submitted and pending | Not feel foolish when completing financial forms | Not have loan application errors delay home purchase |
 | Complete application with few bank visits | Have human fallback available without needing to start over | Feel capable of managing large financial decisions independently |
 
-Observed Behaviours
+##### Observed Behaviours
 
 Downloads and reads the full home loan brochure before opening the app.
 
@@ -137,13 +135,13 @@ Double-checks every field before submitting a form page.
 
 Reads confirmation screens multiple times before proceeding and prints them as backup.
 
-Critical Pain Points
+##### Critical Pain Points
 
 Lack of human acknowledgement and reassurance.
 
 No visibility into bank-side processing, what happens after submission is a black box
 
----
+:::
 
 ---
 

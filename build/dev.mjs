@@ -9,7 +9,7 @@ const DIST = path.join(ROOT, 'dist');
 const PORT = Number(process.env.PORT) || 4321;
 const site = JSON.parse(fs.readFileSync(path.join(ROOT, 'site.config.json'), 'utf8'));
 const base = new URL(process.env.SITE_URL || site.url).pathname.replace(/\/$/, '');
-const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.avif': 'image/avif', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.png': 'image/png', '.mp4': 'video/mp4', '.pdf': 'application/pdf', '.xml': 'application/xml', '.txt': 'text/plain' };
+const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.avif': 'image/avif', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.png': 'image/png', '.mp4': 'video/mp4', '.pdf': 'application/pdf', '.xml': 'application/xml', '.txt': 'text/plain', '.woff2': 'font/woff2' };
 
 let building = false, again = false;
 function build() {
@@ -34,10 +34,10 @@ http.createServer((req, res) => {
   const range = req.headers.range?.match(/bytes=(\d*)-(\d*)/);
   if (range) {
     const start = Number(range[1] || 0), end = Number(range[2] || stat.size - 1);
-    res.writeHead(206, { 'content-type': type, 'content-range': `bytes ${start}-${end}/${stat.size}`, 'accept-ranges': 'bytes', 'content-length': end - start + 1 });
+    res.writeHead(206, { 'cache-control': 'no-store', 'content-type': type, 'content-range': `bytes ${start}-${end}/${stat.size}`, 'accept-ranges': 'bytes', 'content-length': end - start + 1 });
     fs.createReadStream(file, { start, end }).pipe(res);
   } else {
-    res.writeHead(200, { 'content-type': type, 'content-length': stat.size, 'accept-ranges': 'bytes' });
+    res.writeHead(200, { 'cache-control': 'no-store', 'content-type': type, 'content-length': stat.size, 'accept-ranges': 'bytes' });
     fs.createReadStream(file).pipe(res);
   }
 }).listen(PORT, () => console.log(`Preview: http://localhost:${PORT}${base}/`));

@@ -2,6 +2,7 @@
 title: "Resume"
 year: 2025
 order: 1
+cover: "akif-for-designer.webp"
 ---
 
 ![I wanted to design a resume that feels more visually engaging than my LaTeX one](image.webp)

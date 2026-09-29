@@ -8,15 +8,13 @@ order: 7
 ![As part of the design team I worked on the socials, merch, animations and brand identity](output.mp4)
 
 ![](akif-x.webp)
-
 ![](image.webp)
 
 ![TEDx – Echoes in the labyrinth](boring-x-no-more.webp)
 
 ![](maze.mp4)
 
-<details>
-<summary>Show code for MazeGen</summary>
+::: toggle Show code for MazeGen
 
 ```jsx
 // DISPLAY CONSTS
@@ -284,10 +282,9 @@ function drawCell(x, y, color) {
 
 ```
 
-</details>
+:::
 
 ![Later got changed to ‘Ideas that echo’](tshirt-mockup.webp)
 
 ![](image-1.webp)
-
 ![](image-2.webp)

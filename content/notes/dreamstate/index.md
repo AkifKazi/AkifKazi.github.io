@@ -7,8 +7,6 @@ videos:
   - "https://youtu.be/LLwBg6ihaow?si=4rprEIn_NiYYmoqj"
 ---
 
-Links: https://youtu.be/LLwBg6ihaow?si=4rprEIn_NiYYmoqj
-
 ![Priyansh can explore uncharted worlds in his dreams](output2.mp4)
 
 ## What would *you* do if you could live in your dreams?
@@ -18,9 +16,8 @@ Humans spend 1/3 of their lives sleeping, so what if we could use that time to e
 Lucid dreaming is where you are aware that you are dreaming and can control them to a certain extent. I speculate that in the future we could induce lucidity and maybe even nudge our brains to follow a certain narrative as well. 
 
 > It doesn’t always work, but when it does…its worth remembering.
-
-— Priyansh Adeshra  *Dreamstate user*
-> 
+>
+> — Priyansh Adeshra <small>*Dreamstate user*</small>
 
 To address ethical concerns, the device operates entirely offline, ensuring no data is transmitted externally. A key feature is its moderation of lucid dreaming, with only a 30-40% chance of inducing it to avoid negative health effects from overuse. The device is also designed to recognize and reject overuse, limiting the duration of lucid dreaming and requiring breaks between uses to prevent any potential abuse.
 

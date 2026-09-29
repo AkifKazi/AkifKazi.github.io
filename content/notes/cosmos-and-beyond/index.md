@@ -9,10 +9,9 @@ order: 13
 
 You import the below code into p5.js and press ‘p’ to export a zip file with png frames. Then just convert those frames to GIF, I recommend FFmpeg via terminal.
 
-<details>
-<summary>Show code for Cosmos</summary>
+::: toggle Show code for Cosmos
 
-```jsx
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -224,16 +223,15 @@ function keyPressed() {
 </html>
 ```
 
-</details>
+:::
 
 ---
 
-## RectGen *(2022)*
+## RectGen <small>*(2022)*</small>
 
 ![My first creative code project involves generating rectangles of random width and height](image.webp)
 
-<details>
-<summary>Show code for RectGen</summary>
+::: toggle Show code for RectGen
 
 ```jsx
 let scl, row, col; //scale or cell size, no of rows, no of cols
@@ -304,14 +302,15 @@ function saveFile() {
 
 ```
 
-</details>
+:::
 
 ---
 
-## Voronoi *(2022)*
+## Voronoi <small>*(2022)*</small>
 
-<details>
-<summary>Show code for Voronoi</summary>
+![Later on I also tried making moving Voronoi textures for my project](voronoi.mp4)
+
+::: toggle Show code for Voronoi
 
 ```jsx
 let voronoi = new Voronoi();
@@ -355,4 +354,4 @@ function draw() {
 
 ```
 
-</details>
+:::

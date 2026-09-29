@@ -6,7 +6,8 @@ import { promisify } from 'node:util';
 import matter from 'gray-matter';
 import sharp from 'sharp';
 import { createMarkdown, esc, preprocess, slugify, youtubeId } from './render.mjs';
-import { footer, layout, markBig, markLink, toggleButton } from './layout.mjs';
+import { footer, header, layout } from './layout.mjs';
+import { icon } from './icons.mjs';
 
 const run = promisify(execFile);
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -18,7 +19,7 @@ const site = JSON.parse(fs.readFileSync(path.join(ROOT, 'site.config.json'), 'ut
 const siteUrl = (process.env.SITE_URL || site.url).replace(/\/$/, '');
 const base = new URL(siteUrl).pathname.replace(/\/$/, '');
 const year = new Date().getFullYear();
-const WIDTHS = [360, 720, 1080, 1440];
+const WIDTHS = [360, 720, 1080, 1440, 2048];
 const IMG = /\.(webp|png|jpe?g|avif)$/i;
 const VID = /\.(mp4|webm|gif)$/i;
 const t0 = Date.now();
@@ -29,6 +30,7 @@ const exists = (p) => fs.existsSync(p);
 const mtime = (p) => fs.statSync(p).mtimeMs;
 const fresh = (out, src) => exists(out) && mtime(out) >= mtime(src);
 const mkdir = (p) => fsp.mkdir(p, { recursive: true });
+const pad = (n) => String(n).padStart(2, '0');
 
 async function pool(items, n, fn) {
   const q = [...items];
@@ -45,18 +47,41 @@ async function ffmpeg(args) {
 }
 
 /* ---------- media ---------- */
+
+// Images with see-through areas were drawn for a dark page (Notion's dark theme);
+// they get a dark backdrop on the site in both themes.
+async function hasTransparency(file) {
+  const meta = await sharp(file).metadata();
+  if (!meta.hasAlpha) return false;
+  const { data } = await sharp(file).resize(256, 256, { fit: 'inside' }).ensureAlpha().extractChannel(3).raw().toBuffer({ resolveWithObject: true });
+  let see = 0;
+  for (const v of data) if (v < 250) see++;
+  return see / data.length > 0.01;
+}
+
 async function imageAsset(file, route) {
   const name = slugify(path.basename(file, path.extname(file)));
   const cdir = path.join(CACHE, 'media', route);
   await mkdir(cdir);
-  const meta = await sharp(file).rotate().metadata();
-  const [w, h] = meta.orientation >= 5 ? [meta.height, meta.width] : [meta.width, meta.height];
+  const infoFile = path.join(cdir, `${name}.json`);
+  let meta;
+  if (fresh(infoFile, file)) meta = JSON.parse(fs.readFileSync(infoFile, 'utf8'));
+  else {
+    const m = await sharp(file).rotate().metadata();
+    const [w, h] = m.orientation >= 5 ? [m.height, m.width] : [m.width, m.height];
+    meta = { w, h, alpha: await hasTransparency(file) };
+  }
+  const { w, h, alpha } = meta;
   const widths = [...new Set([...WIDTHS.filter((x) => x < w), Math.min(w, WIDTHS.at(-1))])].sort((a, b) => a - b);
   for (const width of widths) {
     const out = path.join(cdir, `${name}-${width}.avif`);
     if (!fresh(out, file)) await sharp(file).rotate().resize({ width, withoutEnlargement: true }).avif({ quality: 58, effort: 4 }).toFile(out);
   }
-  return { kind: 'img', name, w, h, widths, cache: widths.map((x) => `${name}-${x}.avif`), source: file };
+  // for browsers without AVIF
+  const fallback = `${name}-fb.webp`;
+  if (!fresh(path.join(cdir, fallback), file)) await sharp(file).rotate().resize({ width: 1080, withoutEnlargement: true }).webp({ quality: 76, effort: 4 }).toFile(path.join(cdir, fallback));
+  fs.writeFileSync(infoFile, JSON.stringify(meta));
+  return { kind: 'img', name, w, h, alpha, widths, fallback, cache: [...widths.map((x) => `${name}-${x}.avif`), fallback], source: file };
 }
 
 async function videoAsset(file, route) {
@@ -69,11 +94,12 @@ async function videoAsset(file, route) {
     if (!fresh(mp4, file)) await ffmpeg(['-i', file, '-vf', "scale='min(1280,iw)':-2:flags=lanczos,format=yuv420p", '-c:v', 'libx264', '-preset', 'slow', '-crf', '27', '-movflags', '+faststart', '-an', mp4]);
   }
   const png = path.join(cdir, `${name}-poster.png`);
-  const poster = path.join(cdir, `${name}-poster.avif`);
+  const poster = path.join(cdir, `${name}-poster.jpg`);
   if (!fresh(png, file)) await ffmpeg(['-i', mp4, '-frames:v', '1', png]);
   const { width: w, height: h } = await sharp(png).metadata();
-  if (!fresh(poster, file)) await sharp(png).resize({ width: 1080, withoutEnlargement: true }).avif({ quality: 55, effort: 4 }).toFile(poster);
-  return { kind: 'video', name, w, h, file: `${name}${path.extname(mp4)}`, poster: `${name}-poster.avif`, cacheDir: cdir, mp4Path: mp4, source: png };
+  // JPEG, not AVIF: posters must show in every browser, including ones without AVIF
+  if (!fresh(poster, file)) await sharp(png).resize({ width: 1080, withoutEnlargement: true }).jpeg({ quality: 72, mozjpeg: true }).toFile(poster);
+  return { kind: 'video', name, w, h, file: `${name}${path.extname(mp4)}`, poster: `${name}-poster.jpg`, cacheDir: cdir, mp4Path: mp4, source: png };
 }
 
 async function ytThumb(id, route) {
@@ -90,9 +116,9 @@ async function ytThumb(id, route) {
   if (!exists(jpg)) return null;
   const cdir = path.join(CACHE, 'media', route);
   await mkdir(cdir);
-  const out = path.join(cdir, `yt-${id}.avif`);
-  if (!fresh(out, jpg)) await sharp(jpg).resize(960, 540, { fit: 'cover' }).avif({ quality: 50, effort: 4 }).toFile(out);
-  return { file: `yt-${id}.avif`, w: 960, h: 540, cache: [`yt-${id}.avif`], source: jpg };
+  const out = path.join(cdir, `yt-${id}.jpg`);
+  if (!fresh(out, jpg)) await sharp(jpg).resize(1280, 720, { fit: 'cover' }).jpeg({ quality: 72, mozjpeg: true }).toFile(out);
+  return { file: `yt-${id}.jpg`, w: 1280, h: 720, cache: [`yt-${id}.jpg`], source: jpg };
 }
 
 /* ---------- pages ---------- */
@@ -196,12 +222,12 @@ async function loadPage(route) {
   const title = data.title || route.split('/').pop();
   const tags = (data.tags || []).filter((t) => t.toLowerCase() !== 'project');
   return {
-    route, title, tags, cover, html, env,
+    route, title, tags, cover, html, env, toc: env.toc || [],
     hasDesc: Boolean(data.description), year: data.year, role: data.role, prototype: data.prototype, order: data.order, copyright: data.copyright,
     videos: (data.videos || []).map(youtubeId).filter(Boolean),
     description: data.description || plainText(tokens) || `${title}${tags.length ? ' — ' + tags.join(', ') : ''} by ${site.name}.`,
     section: route.split('/')[0],
-    parent: route.includes('/') ? route.split('/').slice(0, -1).join('/') : null,
+    parent: route.includes('/') && route.split('/').length > 2 ? route.split('/').slice(0, -1).join('/') : null,
   };
 }
 
@@ -210,7 +236,11 @@ async function ogFor(page) {
   if (!page.cover) return null;
   await mkdir(path.dirname(out));
   const src = page.cover.source;
-  if (!fresh(out, src)) await sharp(src).rotate().resize(1200, 630, { fit: 'cover', position: 'top' }).jpeg({ quality: 78, mozjpeg: true }).toFile(out);
+  if (!fresh(out, src)) {
+    const img = sharp(src).rotate();
+    if (page.cover.alpha) img.flatten({ background: '#141B23' });
+    await img.resize(1200, 630, { fit: 'cover', position: 'top' }).jpeg({ quality: 78, mozjpeg: true }).toFile(out);
+  }
   outputs.push({ from: out, to: path.join(page.route, 'og.jpg') });
   return `${abs(page.route)}og.jpg`;
 }
@@ -219,16 +249,19 @@ const yearOf = (p) => p.year || 0;
 const sorter = (a, b) => (a.order ?? 99) - (b.order ?? 99) || yearOf(b) - yearOf(a) || a.title.localeCompare(b.title);
 
 function coverTag(c, sizes) {
-  if (!c) return `<span class="thumb" aria-hidden="true"></span>`;
+  if (!c) return `<span class="thumb empty" aria-hidden="true">${icon('description')}</span>`;
+  const dir = href(c.route);
   if (c.kind === 'img') {
-    const dir = href(c.route);
     const srcset = c.widths.map((w) => `${dir}${c.name}-${w}.avif ${w}w`).join(', ');
-    return `<img class="thumb" src="${dir}${c.name}-${c.widths.at(-1)}.avif" srcset="${srcset}" sizes="${sizes}" width="${c.w}" height="${c.h}" alt="" loading="lazy" decoding="async">`;
+    return `<picture class="thumb${c.alpha ? ' alpha' : ''}"><source type="image/avif" srcset="${srcset}" sizes="${sizes}"><img src="${dir}${c.fallback}" width="${c.w}" height="${c.h}" alt="" loading="lazy" decoding="async"></picture>`;
   }
-  return `<img class="thumb" src="${href(c.route)}${c.file}" width="${c.w}" height="${c.h}" alt="" loading="lazy" decoding="async">`;
+  return `<picture class="thumb"><img src="${dir}${c.file}" width="${c.w}" height="${c.h}" alt="" loading="lazy" decoding="async"></picture>`;
 }
 
-const card = (p, kind) => `<li><a class="card" href="${href(p.route)}">${coverTag(p.cover, kind === 'project' ? '(min-width: 64rem) 330px, (min-width: 46rem) 45vw, 100vw' : '(min-width: 64rem) 200px, (min-width: 720px) 30vw, 46vw')}<span class="body"><h3>${esc(p.title)}</h3>${kind === 'project' ? `<p>${esc(p.description)}</p>` : ''}${p.year ? `<span class="yr">${p.year}</span>` : ''}</span></a></li>`;
+const card = (p, i, kind) => {
+  const sizes = kind === 'project' ? '(min-width: 1280px) 400px, (min-width: 720px) 48vw, calc(100vw - 32px)' : '(min-width: 1280px) 290px, (min-width: 720px) 31vw, 46vw';
+  return `<li><a class="card" href="${href(p.route)}"><span class="frame" aria-hidden="true"></span>${coverTag(p.cover, sizes)}<div class="body"><p class="card-k"><span class="idx">${pad(i + 1)}</span>${p.year ? `<span>${p.year}</span>` : ''}</p><h3>${esc(p.title)}</h3>${kind === 'project' ? `<p class="desc">${esc(p.description)}</p>` : ''}${kind === 'project' && p.tags.length ? `<p class="tags">${p.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</p>` : ''}</div></a></li>`;
+};
 
 /* ---------- build ---------- */
 await fsp.rm(DIST, { recursive: true, force: true });
@@ -250,24 +283,39 @@ const homeHtml = createMarkdown().render(preprocess(home.content), { assets: new
 const projects = pages.filter((p) => p.section === 'projects' && p.route.split('/').length === 2).sort(sorter);
 const notes = pages.filter((p) => p.section === 'notes' && p.route.split('/').length === 2).sort(sorter);
 const resume = site.resume ? href(site.resume.replace(/\/$/, '')).replace(/\/$/, '') : null;
+const resumePage = site.resume && byRoute.get(site.resume.split('/').slice(0, -1).join('/'));
 const homeOg = path.join(CACHE, 'og', 'home.jpg');
 await mkdir(path.dirname(homeOg));
 {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"><defs><radialGradient id="g" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#fff"/><stop offset=".75" stop-color="#E3EBF2"/><stop offset="1" stop-color="#D3DEE8"/></radialGradient></defs><rect width="1200" height="630" fill="url(#g)"/><g fill="none" stroke="#1B4B7A" stroke-width="2" opacity=".7"><path d="M90 150v-40h40M1110 480v40h-40"/></g><text x="100" y="330" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="300" font-size="112" letter-spacing="-3" fill="#08182A">${esc(site.name)}</text><text x="104" y="406" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="38" letter-spacing="8" fill="#4A6077">${esc(site.tagline.toUpperCase())}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"><rect width="1200" height="630" fill="#EEF2F5"/><g fill="#fff"><path d="M-80 630 380 -40 700 630z" opacity=".75"/><path d="M620 0h700L980 520z" opacity=".6"/></g><path d="M760 630 1080 150 1300 630z" fill="#1E5A8E" opacity=".06"/><g fill="none" stroke="#1E5A8E" stroke-width="2"><path d="M90 150v-40h40M1110 480v40h-40"/></g><text x="100" y="330" font-family="Montserrat, Helvetica Neue, Arial, sans-serif" font-weight="300" font-size="112" letter-spacing="2" fill="#0B1520">${esc(site.name.split(' ')[0].toUpperCase())} <tspan font-weight="600">${esc(site.name.split(' ').slice(1).join(' ').toUpperCase())}</tspan></text><text x="104" y="406" font-family="Montserrat, Helvetica Neue, Arial, sans-serif" font-size="34" letter-spacing="9" fill="#5B6B7B">${esc(site.tagline.toUpperCase())}</text></svg>`;
   await sharp(Buffer.from(svg)).jpeg({ quality: 86 }).toFile(homeOg);
   outputs.push({ from: homeOg, to: 'og.jpg' });
 }
 
-const homeBody = `<header class="top wide"><span></span>${toggleButton}</header>
-<main class="wrap wide">
-<section class="hero">${markBig}<h1>${esc(site.name)}</h1><div class="lead">${homeHtml}</div>
-<ul class="pills">${resume ? `<li><a class="pill primary" href="${resume}">Resume</a></li>` : ''}<li><a class="pill" href="mailto:${esc(site.email)}">Email</a></li><li><a class="pill" href="${esc(site.links[0].href)}">${esc(site.links[0].label)}</a></li></ul></section>
-<section><h2 class="label">Projects</h2><ul class="grid projects">${projects.map((p) => card(p, 'project')).join('')}</ul></section>
-<section><h2 class="label">Notes</h2><ul class="grid notes">${notes.map((p) => card(p, 'note')).join('')}</ul></section>
+const top = (current) => header({ site, home: href(), resume, current });
+const facts = (home.data.facts || []).map((f) => (Array.isArray(f) ? f : [f.label, f.value]));
+const [first, ...rest] = site.name.split(' ');
+const actions = `<ul class="actions">${resume ? `<li><a class="btn primary" href="${resume}">${icon('description')}<span>Resume</span></a></li>` : ''}<li><a class="btn" href="mailto:${esc(site.email)}">${icon('mail')}<span>Email</span></a></li><li><a class="btn" href="${esc(site.links[0].href)}"><span>${esc(site.links[0].label)}</span>${icon('arrow_outward')}</a></li></ul>`;
+const sectionHead = (n, label, count, id) => `<h2 class="label" id="${id}"><span class="label-n">${pad(n)}</span><span class="label-t">${label}</span><span class="label-line" aria-hidden="true"></span><span class="label-c">${pad(count)} entries</span></h2>`;
+
+const homeBody = `${top('')}
+<main id="main" class="home">
+<section class="hero">
+<div class="hero-main">
+<p class="eyebrow"><span>Portfolio</span><span class="eyebrow-n">${year}</span></p>
+<h1 class="name"><span class="n1">${esc(first)}</span> <span class="n2">${esc(rest.join(' '))}</span></h1>
+<p class="role">${esc(site.tagline)}</p>
+<div class="lead">${homeHtml}</div>
+${actions}
+</div>
+${facts.length ? `<dl class="status" aria-label="At a glance">${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
+</section>
+<section class="shelf">${sectionHead(1, 'Projects', projects.length, 'projects')}<ul class="grid projects">${projects.map((p, i) => card(p, i, 'project')).join('')}</ul></section>
+<section class="shelf">${sectionHead(2, 'Notes', notes.length, 'notes')}<ul class="grid notes">${notes.map((p, i) => card(p, i, 'note')).join('')}</ul></section>
 </main>
 ${footer(site, year)}`;
 await write('index.html', layout({
-  site, base, wide: true, body: homeBody,
+  site, base, body: homeBody, bodyClass: 'is-home',
   title: home.data.title || `${site.name} — ${site.tagline}`,
   description: home.data.description || site.description,
   canonical: abs(), ogImage: `${abs()}og.jpg`,
@@ -278,34 +326,60 @@ await write('index.html', layout({
 for (const p of pages) {
   const parent = p.parent && byRoute.get(p.parent);
   const og = await ogFor(p);
+  const list = p.section === 'projects' ? projects : notes;
+  const idx = list.indexOf(p);
+  const kind = parent ? parent.title : p.section === 'projects' ? 'Project' : 'Note';
   const meta = [
-    p.role && `<div class="wide"><dt>Role</dt><dd>${esc(p.role)}</dd></div>`,
-    p.year && `<div><dt>Year</dt><dd>${p.year}</dd></div>`,
-    p.tags.length && `<div><dt>Tags</dt><dd>${p.tags.map(esc).join(' · ')}</dd></div>`,
-  ].filter(Boolean).join('');
-  const vids = p.videos.map((v) => {
+    p.role && ['Role', esc(p.role)],
+    p.year && ['Year', p.year],
+    p.tags.length && ['Tags', p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')],
+  ].filter(Boolean);
+  const vids = p.videos.map((v, i) => {
     const th = p.env.yt.get(v.id);
-    return `<div class="yt hero-video"><a href="https://youtu.be/${v.id}${v.t ? `?t=${v.t}` : ''}" data-yt="${v.id}"${v.t ? ` data-t="${v.t}"` : ''} aria-label="Play video on YouTube">${th ? `<img src="${th.file}" width="${th.w}" height="${th.h}" alt="" decoding="async" ${p.videos[0] === v ? 'fetchpriority="high"' : 'loading="lazy"'}>` : ''}</a></div>`;
+    return `<div class="yt"><a href="https://youtu.be/${v.id}${v.t ? `?t=${v.t}` : ''}" data-yt="${v.id}"${v.t ? ` data-t="${v.t}"` : ''} aria-label="Play video on YouTube">${th ? `<img src="${th.file}" width="${th.w}" height="${th.h}" alt="" decoding="async" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}>` : ''}<span class="yt-play">${icon('play_arrow')}</span></a></div>`;
   }).join('');
-  const body = `<header class="top">${markLink(href())}${toggleButton}</header>
-<main class="wrap"><article>
-${parent ? `<p class="crumb"><a href="${href(parent.route)}">← ${esc(parent.title)}</a></p>` : ''}
-<header class="ahead"><h1>${esc(p.title)}</h1>${p.hasDesc ? `<p class="lead">${esc(p.description)}</p>` : ''}${meta ? `<dl class="meta">${meta}</dl>` : ''}${p.prototype ? `<ul class="pills"><li><a class="pill primary" href="${esc(p.prototype)}">Open Figma prototype</a></li></ul>` : ''}</header>
-${vids}
+  const toc = p.toc.length >= 3 ? `<nav class="toc" role="navigation" aria-label="On this page"><p class="toc-k"><span>Contents</span><span class="toc-pct" aria-hidden="true">0%</span></p><ol>${p.toc.map((t) => `<li><a href="#${t.id}">${esc(t.text)}</a></li>`).join('')}</ol></nav>` : '';
+  let next = null;
+  if (parent) next = { href: href(parent.route), k: 'Back to', t: parent.title, icon: 'arrow_back' };
+  else if (idx >= 0 && list.length > 1) {
+    const n = list[(idx + 1) % list.length];
+    next = { href: href(n.route), k: idx + 1 === list.length ? `Back to first ${p.section === 'projects' ? 'project' : 'note'}` : `Next ${p.section === 'projects' ? 'project' : 'note'}`, t: n.title, icon: 'keyboard_return' };
+  }
+  const cont = next ? `<nav class="continue" role="navigation" aria-label="Continue reading"><a href="${next.href}"><span class="cont-k">${icon(next.icon)}<span>Continue</span></span><span class="cont-t"><span>${next.k}</span><b>${esc(next.t)}</b></span></a></nav>` : '';
+  const body = `${top(p.section === 'projects' ? 'Projects' : p.route === resumePage?.route ? 'Resume' : 'Notes')}
+<div class="progress" aria-hidden="true"></div>
+<main id="main" class="page${toc ? ' has-toc' : ''}">
+<article class="article">
+<header class="ahead">
+${parent ? `<p class="crumb"><a href="${href(parent.route)}">${icon('arrow_back')}${esc(parent.title)}</a></p>` : ''}
+<p class="eyebrow"><span>${esc(kind)}</span>${idx >= 0 && !parent ? `<span class="eyebrow-n">${pad(idx + 1)} / ${pad(list.length)}</span>` : ''}</p>
+<h1>${esc(p.title)}</h1>
+<div class="ahead-grid"><div class="ahead-main">${p.hasDesc ? `<p class="lead">${esc(p.description)}</p>` : ''}${p.prototype ? `<p class="actions"><a class="btn primary" href="${esc(p.prototype)}">${icon('touch_app')}<span>Open Figma prototype</span>${icon('arrow_outward')}</a></p>` : ''}</div>${meta.length ? `<dl class="meta">${meta.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>` : ''}</div>
+</header>
+${vids ? `<div class="hero-media">${vids}</div>` : ''}
+<div class="prose">
 ${p.html}
-</article></main>
+</div>
+</article>
+${toc}
+</main>
+${cont ? `<div class="page page-end${toc ? ' has-toc' : ''}">${cont}</div>` : ''}
 ${footer(site, year, p.copyright)}`;
   await write(`${p.route}/index.html`, layout({
-    site, base, body,
+    site, base, body, bodyClass: 'is-article',
     title: `${p.title} — ${site.name}`,
     description: p.description,
     canonical: abs(p.route), ogImage: og, ogType: 'article',
+    extraHead: `\n<meta property="article:author" content="${esc(site.name)}">`,
     jsonld: { '@context': 'https://schema.org', '@type': 'CreativeWork', headline: p.title, description: p.description, url: abs(p.route), author: { '@type': 'Person', name: site.name, url: abs() }, ...(p.year ? { datePublished: String(p.year) } : {}), ...(og ? { image: og } : {}), ...(p.tags.length ? { keywords: p.tags.join(', ') } : {}), inLanguage: 'en' },
   }));
 }
 
 // static + generated files
-await write('404.html', layout({ site, base, title: `Not found — ${site.name}`, description: 'Page not found.', canonical: abs(), jsonld: {}, body: `<header class="top">${markLink(href())}${toggleButton}</header><main class="wrap"><article><header class="ahead"><h1>Page not found</h1><ul class="pills"><li><a class="pill primary" href="${href()}">Home</a></li></ul></header></article></main>` }));
+await write('404.html', layout({
+  site, base, title: `Not found — ${site.name}`, description: 'Page not found.', canonical: abs(), bodyClass: 'is-article',
+  body: `${top('')}<main id="main" class="page"><article class="article"><header class="ahead"><p class="eyebrow"><span>Error</span><span class="eyebrow-n">404</span></p><h1>Page not found</h1><div class="ahead-grid"><div class="ahead-main"><p class="lead">This page doesn’t exist, or it moved.</p><p class="actions"><a class="btn primary" href="${href()}">${icon('arrow_back')}<span>Home</span></a></p></div></div></header></article></main>${footer(site, year)}`,
+}));
 await write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${['', ...pages.map((p) => p.route)].map((r) => `<url><loc>${abs(r)}</loc></url>`).join('\n')}\n</urlset>\n`);
 await write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`);
 await fsp.cp(PUBLIC, DIST, { recursive: true });

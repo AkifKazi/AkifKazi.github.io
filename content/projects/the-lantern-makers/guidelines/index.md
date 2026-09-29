@@ -6,7 +6,7 @@ title: "Guidelines: 2D animation for Immersive video formats"
 
 These guidelines distill key insights from my experiment, research, and user testing to help 2D animators create immersive experiences. Covering composition, camera movement, storytelling, and audio cues, they provide practical strategies to balance artistic expression with viewer comfort, making immersive animation accessible without the need for complex 3D tools.
 
-> [!note]
+> [!key]
 > #### Key Takeaways
 >
 > - Prioritise viewer comfort over cinematic complexity
@@ -39,7 +39,7 @@ Keep the camera largely stationary. If movement is necessary, opt for slow dolly
 
 #### Design For Headset Constraints
 
-![](fov-of-human.webp)
+![|521](fov-of-human.webp)
 
 Design with the limitations of common VR headset FOVs (90°–120°) in mind, considering that human vision spans roughly 180°-210° horizontally. This means peripheral content may not be visible.
 

@@ -27,6 +27,5 @@ Some earlier variants…
 
 ![](image-3.webp)
 
-![](image-4.webp)
-
-![](image-5.webp)
+![|240](image-4.webp)
+![|240](image-5.webp)
