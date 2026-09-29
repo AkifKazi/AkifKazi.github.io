@@ -218,7 +218,7 @@ export function createMarkdown() {
   };
   r.figma = (tokens, idx, o, env) => {
     const { href, text } = tokens[idx].meta;
-    return `<div class="proto"><p><a class="btn primary" href="${esc(href)}" data-figma>${icon('touch_app')}<span>${md.renderInline(text, env)}</span>${icon('arrow_outward')}</a></p></div>\n`;
+    return `<div class="proto"><p><a class="btn" href="${esc(href)}" data-figma>${icon('touch_app')}<span>${md.renderInline(text, env)}</span>${icon('arrow_outward')}</a></p></div>\n`;
   };
 
   r.image = (tokens, idx, o, env) => {

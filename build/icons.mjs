@@ -12,5 +12,5 @@ export function icon(name, cls = '') {
     const d = [...svg.matchAll(/<path[^>]*\sd="([^"]+)"/g)].map((m) => m[1]).join('');
     cache.set(name, d);
   }
-  return `<svg class="i${cls ? ' ' + cls : ''}" viewBox="0 -960 960 960" aria-hidden="true" focusable="false"><path d="${cache.get(name)}"/></svg>`;
+  return `<svg class="i${cls ? ' ' + cls : ''}" viewBox="0 -960 960 960" width="24" height="24" aria-hidden="true" focusable="false"><path d="${cache.get(name)}"/></svg>`;
 }

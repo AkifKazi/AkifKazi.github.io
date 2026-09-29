@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import matter from 'gray-matter';
 import sharp from 'sharp';
 import { createMarkdown, esc, preprocess, slugify, youtubeId } from './render.mjs';
-import { footer, header, layout, MARK_SVG } from './layout.mjs';
+import { drop, footer, header, layout, markLink, themeButton } from './layout.mjs';
 import { icon } from './icons.mjs';
 
 const run = promisify(execFile);
@@ -23,6 +23,7 @@ const WIDTHS = [360, 720, 1080, 1440, 2048];
 const IMG = /\.(webp|png|jpe?g|avif)$/i;
 const VID = /\.(mp4|webm|gif)$/i;
 const t0 = Date.now();
+const MEDIA_BG = '#141B23'; // same as --media in style.css
 
 const href = (route = '') => `${base}/${route ? route + '/' : ''}`;
 const abs = (route = '') => `${siteUrl}/${route ? route + '/' : ''}`;
@@ -71,14 +72,19 @@ async function imageAsset(file, route) {
     meta = { w, h, alpha: await hasTransparency(file) };
   }
   const { w, h, alpha } = meta;
+  // Bake the dark backdrop into transparent images, so they also read right where the page's CSS
+  // doesn't apply: reader mode, link previews, saved images.
+  const redo = alpha && meta.flat !== MEDIA_BG;
+  const load = () => { const s = sharp(file).rotate(); return alpha ? s.flatten({ background: MEDIA_BG }) : s; };
   const widths = [...new Set([...WIDTHS.filter((x) => x < w), Math.min(w, WIDTHS.at(-1))])].sort((a, b) => a - b);
   for (const width of widths) {
     const out = path.join(cdir, `${name}-${width}.avif`);
-    if (!fresh(out, file)) await sharp(file).rotate().resize({ width, withoutEnlargement: true }).avif({ quality: 58, effort: 4 }).toFile(out);
+    if (redo || !fresh(out, file)) await load().resize({ width, withoutEnlargement: true }).avif({ quality: 58, effort: 4 }).toFile(out);
   }
   // for browsers without AVIF
   const fallback = `${name}-fb.webp`;
-  if (!fresh(path.join(cdir, fallback), file)) await sharp(file).rotate().resize({ width: 1080, withoutEnlargement: true }).webp({ quality: 76, effort: 4 }).toFile(path.join(cdir, fallback));
+  if (redo || !fresh(path.join(cdir, fallback), file)) await load().resize({ width: 1080, withoutEnlargement: true }).webp({ quality: 76, effort: 4 }).toFile(path.join(cdir, fallback));
+  if (alpha) meta.flat = MEDIA_BG;
   fs.writeFileSync(infoFile, JSON.stringify(meta));
   return { kind: 'img', name, w, h, alpha, widths, fallback, cache: [...widths.map((x) => `${name}-${x}.avif`), fallback], source: file };
 }
@@ -259,7 +265,7 @@ function coverTag(c, sizes) {
 
 const card = (p, kind) => {
   const sizes = kind === 'project' ? '(min-width: 1280px) 400px, (min-width: 720px) 48vw, calc(100vw - 32px)' : '(min-width: 1280px) 290px, (min-width: 720px) 31vw, 46vw';
-  return `<li><a class="card" href="${href(p.route)}"><span class="frame" aria-hidden="true"></span>${coverTag(p.cover, sizes)}<div class="body"><h3>${esc(p.title)}</h3>${p.year ? `<p class="card-k">${p.year}</p>` : ''}${kind === 'project' ? `<p class="desc">${esc(p.description)}</p>` : ''}${kind === 'project' && p.tags.length ? `<p class="tags">${p.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</p>` : ''}</div></a></li>`;
+  return `<li><a class="card" href="${href(p.route)}"><span class="frame" aria-hidden="true"></span>${coverTag(p.cover, sizes)}<div class="body"><h3>${esc(p.title)}</h3>${p.year ? `<p class="card-k">${p.year}</p>` : ''}${kind === 'project' ? `<p class="desc">${esc(p.description)}</p>` : ''}${kind === 'project' && p.tags.length ? `<p class="tags">${p.tags.map((t) => `<span>${esc(t)}</span>`).join(' ')}</p>` : ''}</div></a></li>`;
 };
 
 /* ---------- build ---------- */
@@ -291,13 +297,13 @@ await mkdir(path.dirname(homeOg));
   outputs.push({ from: homeOg, to: 'og.jpg' });
 }
 
-const top = (current) => header({ site, home: href(), resume, current });
+const top = (current, minimal = false) => header({ site, home: href(), resume, current, minimal });
 const facts = (home.data.facts || []).map((f) => (Array.isArray(f) ? f : [f.label, f.value]));
 const [first, ...rest] = site.name.split(' ');
-const actions = `<ul class="actions">${resume ? `<li><a class="btn primary" href="${resume}">${icon('description')}<span>Resume</span></a></li>` : ''}<li><a class="btn" href="mailto:${esc(site.email)}">${icon('mail')}<span>Email</span></a></li><li><a class="btn" href="${esc(site.links[0].href)}"><span>${esc(site.links[0].label)}</span>${icon('arrow_outward')}</a></li></ul>`;
+const actions = `<ul class="actions">${resume ? `<li><a class="btn primary" href="${resume}">${icon('description')}<span>Resume</span>${drop}</a></li>` : ''}<li><a class="btn" href="mailto:${esc(site.email)}">${icon('mail')}<span>Email</span></a></li><li><a class="btn" href="${esc(site.links[0].href)}"><span>${esc(site.links[0].label)}</span>${icon('arrow_outward')}</a></li></ul>`;
 const sectionHead = (label, id) => `<h2 class="label" id="${id}"><span class="label-t">${label}</span><span class="label-line" aria-hidden="true"></span></h2>`;
 
-const homeBody = `${top('')}
+const homeBody = `${top('', true)}
 <main id="main" class="home">
 <section class="hero">
 <h1 class="name"><span class="n1">${esc(first)}</span> <span class="n2">${esc(rest.join(' '))}</span></h1>
@@ -324,7 +330,7 @@ const navItems = (current) => [
   [`${href()}#notes`, 'Notes'],
   resume && [resume, 'Resume'],
 ].filter(Boolean).map(([h, l]) => `<a href="${h}"${current === l ? ' aria-current="page"' : ''}>${l}</a>`).join('');
-const themeBtn = `<button class="theme" type="button" aria-label="Switch to dark theme" title="Switch theme">${icon('dark_mode', 'to-dark')}${icon('light_mode', 'to-light')}</button>`;
+const themeBtn = themeButton;
 const pagerLink = (x, dir) => x ? `<a class="pg-${dir}" href="${x.href}" rel="${dir}">${icon(dir === 'prev' ? 'arrow_back' : 'arrow_forward')}<span><span class="pg-k">${x.k}</span><b>${esc(x.t)}</b></span></a>` : '';
 
 for (const p of pages) {
@@ -337,7 +343,7 @@ for (const p of pages) {
   const meta = [
     p.role && ['Role', esc(p.role)],
     p.year && ['Year', p.year],
-    p.tags.length && ['Tags', p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join('')],
+    p.tags.length && ['Tags', p.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join(' ')],
   ].filter(Boolean);
   const metaDl = meta.length ? `<dl class="meta">${meta.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>` : '';
   const vids = p.videos.map((v, i) => {
@@ -353,7 +359,7 @@ for (const p of pages) {
 <div class="progress" data-progress aria-hidden="true"></div>
 <div class="shell">
 <aside class="rail rail-l" role="complementary" aria-label="Page">
-<a class="mark" href="${href()}" aria-label="${esc(site.name)}, home">${MARK_SVG}<span class="mark-t"><b>${esc(first)}</b> ${esc(rest.join(' '))}</span></a>
+${markLink(site, href())}
 ${toc}
 <div class="rail-progress" aria-hidden="true"><span class="pct">0%</span><span class="rail-bar" data-progress></span></div>
 </aside>
@@ -362,7 +368,7 @@ ${toc}
 <header class="ahead">
 ${parent ? `<p class="crumb"><a href="${href(parent.route)}">${icon('arrow_back')}${esc(parent.title)}</a></p>` : ''}
 <h1>${esc(p.title)}</h1>
-<div class="ahead-grid"><div class="ahead-main">${p.hasDesc ? `<p class="lead">${esc(p.description)}</p>` : ''}${p.prototype ? `<p class="actions"><a class="btn primary" href="${esc(p.prototype)}">${icon('touch_app')}<span>Open Figma prototype</span>${icon('arrow_outward')}</a></p>` : ''}</div>${metaDl}</div>
+<div class="ahead-grid"><div class="ahead-main">${p.hasDesc ? `<p class="lead">${esc(p.description)}</p>` : ''}${p.prototype ? `<p class="actions"><a class="btn" href="${esc(p.prototype)}">${icon('touch_app')}<span>Open Figma prototype</span>${icon('arrow_outward')}</a></p>` : ''}</div>${metaDl}</div>
 </header>
 ${vids ? `<div class="hero-media">${vids}</div>` : ''}
 <div class="prose">
@@ -384,14 +390,14 @@ ${footer(site, year, p.copyright)}`;
     description: p.description,
     canonical: abs(p.route), ogImage: og, ogType: 'article',
     extraHead: `\n<meta property="article:author" content="${esc(site.name)}">`,
-    jsonld: { '@context': 'https://schema.org', '@type': 'CreativeWork', headline: p.title, description: p.description, url: abs(p.route), author: { '@type': 'Person', name: site.name, url: abs() }, ...(p.year ? { datePublished: String(p.year) } : {}), ...(og ? { image: og } : {}), ...(p.tags.length ? { keywords: p.tags.join(', ') } : {}), inLanguage: 'en' },
+    jsonld: { '@context': 'https://schema.org', '@type': 'Article', headline: p.title, description: p.description, url: abs(p.route), author: { '@type': 'Person', name: site.name, url: abs() }, ...(p.year ? { datePublished: String(p.year) } : {}), ...(og ? { image: og } : {}), ...(p.tags.length ? { keywords: p.tags.join(', ') } : {}), inLanguage: 'en' },
   }));
 }
 
 // static + generated files
 await write('404.html', layout({
   site, base, title: `Not found — ${site.name}`, description: 'Page not found.', canonical: abs(), bodyClass: 'is-article',
-  body: `${top('')}<main id="main" class="page"><article class="article"><header class="ahead"><h1>Page not found</h1><div class="ahead-grid"><div class="ahead-main"><p class="lead">This page doesn’t exist, or it moved.</p><p class="actions"><a class="btn primary" href="${href()}">${icon('arrow_back')}<span>Home</span></a></p></div></div></header></article></main>${footer(site, year)}`,
+  body: `${top('')}<main id="main" class="page"><article class="article"><header class="ahead"><h1>Page not found</h1><div class="ahead-grid"><div class="ahead-main"><p class="lead">This page doesn’t exist, or it moved.</p><p class="actions"><a class="btn" href="${href()}">${icon('arrow_back')}<span>Home</span></a></p></div></div></header></article></main>${footer(site, year)}`,
 }));
 await write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${['', ...pages.map((p) => p.route)].map((r) => `<url><loc>${abs(r)}</loc></url>`).join('\n')}\n</urlset>\n`);
 await write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`);

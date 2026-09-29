@@ -18,7 +18,15 @@ const client = fs.readFileSync(path.join(HERE, 'client.js'), 'utf8').replace(/^\
 // Light unless the visitor picked dark with the toggle.
 const THEME_INIT = `document.documentElement.classList.add('js');try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}`;
 
-export const MARK_SVG = `<svg class="logo" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" aria-hidden="true"><path d="M8 12h16M16 6.5v19M16 14 8.5 24M16 14l7.5 10"/></svg>`;
+// Lettermark: full name where there's room, initials on narrow screens.
+export const markLink = (site, home) => {
+  const [first, ...rest] = site.name.split(' ');
+  const initials = site.name.split(' ').map((w) => w[0]).join('');
+  return `<a class="mark" href="${home}" aria-label="${esc(site.name)}, home"><span class="mark-t" aria-hidden="true"><b>${esc(first)}</b> ${esc(rest.join(' '))}</span><span class="mark-s" aria-hidden="true">${esc(initials)}</span></a>`;
+};
+export const themeButton = `<button class="theme" type="button" aria-label="Switch to dark theme" title="Switch theme">${icon('dark_mode', 'to-dark')}${icon('light_mode', 'to-light')}</button>`;
+// Primary buttons carry a straight-down shadow like the game's selected bar.
+export const drop = '<span class="drop" aria-hidden="true"></span>';
 
 export function analyticsSnippet({ clarity, ga }) {
   if (!clarity && !ga) return '';
@@ -29,18 +37,21 @@ export function analyticsSnippet({ clarity, ga }) {
   return `<script>(function(){var d=0;function go(){if(d)return;d=1;${parts.join('')}}['pointerdown','keydown','scroll','touchstart'].forEach(function(e){addEventListener(e,go,{once:true,passive:true})});addEventListener('load',function(){setTimeout(go,6000)})})();</script>`;
 }
 
-export function header({ site, home, resume, current }) {
+export function header({ site, home, resume, current, minimal = false }) {
+  const skip = `<a class="skip" href="#main">Skip to content</a>`;
+  // Home: the page itself is the name and the navigation, so only the theme switch stays up top.
+  if (minimal) return `${skip}\n<header class="top"><div class="top-in top-min">${themeButton}</div></header>`;
   const nav = [
     [`${home}#projects`, 'Projects'],
     [`${home}#notes`, 'Notes'],
     resume && [resume, 'Resume'],
   ].filter(Boolean);
-  return `<a class="skip" href="#main">Skip to content</a>
+  return `${skip}
 <header class="top"><div class="top-in">
-<a class="mark" href="${home}" aria-label="${esc(site.name)}, home">${MARK_SVG}<span class="mark-t"><b>${esc(site.name.split(' ')[0])}</b> ${esc(site.name.split(' ').slice(1).join(' '))}</span></a>
+${markLink(site, home)}
 <span class="top-line" aria-hidden="true"></span>
 <nav class="nav" aria-label="Main">${nav.map(([h, l]) => `<a href="${h}"${current === l ? ' aria-current="page"' : ''}>${l}</a>`).join('')}</nav>
-<button class="theme" type="button" aria-label="Switch to dark theme" title="Switch theme">${icon('dark_mode', 'to-dark')}${icon('light_mode', 'to-light')}</button>
+${themeButton}
 </div></header>`;
 }
 

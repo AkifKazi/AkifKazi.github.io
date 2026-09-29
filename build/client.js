@@ -96,13 +96,23 @@ toc.addEventListener('click',function(e){var a=e.target.closest('a[href^="#"]');
 // reading progress + background parallax, one rAF per frame
 var bars=[].slice.call(d.querySelectorAll('[data-progress]')),pcts=[].slice.call(d.querySelectorAll('.pct'));
 var l1=d.querySelector('.bg-l1'),l2=d.querySelector('.bg-l2'),tick=0;
+// Mobile browsers change innerHeight as their toolbars slide; hold the largest height per width so
+// nothing tied to it (parallax distance, progress) jumps mid-scroll.
+var vw=innerWidth,vh=innerHeight;
 var upd=function(){tick=0;if(pick)pick();
-if(art&&bars.length){var b=art.getBoundingClientRect(),h=b.height-innerHeight*0.6,p=h>0?Math.min(1,Math.max(0,-b.top/h)):1;
+if(innerWidth!==vw){vw=innerWidth;vh=innerHeight}else if(innerHeight>vh)vh=innerHeight;
+var y=w.scrollY||w.pageYOffset,max=Math.max(0,r.scrollHeight-vh);
+if(art&&bars.length){
+// 100% once the article's end is on screen, or the page can't scroll any further
+var end=Math.min(max,art.getBoundingClientRect().bottom+y-vh),p=end<=0?1:Math.min(1,Math.max(0,y/end));
 bars.forEach(function(x){x.style.setProperty('--p',p.toFixed(4))});pcts.forEach(function(x){x.textContent=Math.round(p*100)+'%'})}
-if(l1&&!reduce){var max=Math.max(1,r.scrollHeight-innerHeight),q=Math.min(1,Math.max(0,scrollY/max));
-l1.style.transform='translate3d(0,'+(-q*innerHeight*0.05).toFixed(1)+'px,0)';
-l2.style.transform='translate3d(0,'+(-q*innerHeight*0.12).toFixed(1)+'px,0)'}
+// fixed travel (not a share of the viewport), so a sliding toolbar can't nudge the backdrop
+if(l1&&!reduce){var q=max>0?Math.min(1,y/max):0;
+l1.style.transform='translate3d(0,'+(-q*44).toFixed(1)+'px,0)';
+l2.style.transform='translate3d(0,'+(-q*110).toFixed(1)+'px,0)'}
 };
 w.addEventListener('scroll',function(){if(!tick){tick=1;requestAnimationFrame(upd)}},{passive:true});
-w.addEventListener('resize',upd);upd();
+w.addEventListener('resize',function(){if(!tick){tick=1;requestAnimationFrame(upd)}});upd();
+// lazy images and opened toggles change the article's height without a scroll
+if(art&&w.ResizeObserver)new ResizeObserver(function(){if(!tick){tick=1;requestAnimationFrame(upd)}}).observe(art);
 })();
