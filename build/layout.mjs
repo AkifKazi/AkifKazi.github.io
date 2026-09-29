@@ -28,13 +28,18 @@ export const themeButton = `<button class="theme" type="button" aria-label="Swit
 // Primary buttons carry a straight-down shadow like the game's selected bar.
 export const drop = '<span class="drop" aria-hidden="true"></span>';
 
-export function analyticsSnippet({ clarity, ga }) {
-  if (!clarity && !ga) return '';
-  const parts = [];
-  if (clarity) parts.push(`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script",${JSON.stringify(clarity)});`);
-  if (ga) parts.push(`var s=document.createElement('script');s.async=1;s.src='https://www.googletagmanager.com/gtag/js?id='+${JSON.stringify(ga)};document.head.appendChild(s);window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config',${JSON.stringify(ga)});`);
-  // Loaded after the page is done: on first interaction, or 6s after load.
-  return `<script>(function(){var d=0;function go(){if(d)return;d=1;${parts.join('')}}['pointerdown','keydown','scroll','touchstart'].forEach(function(e){addEventListener(e,go,{once:true,passive:true})});addEventListener('load',function(){setTimeout(go,6000)})})();</script>`;
+// Microsoft Clarity (scroll depth, time on page, click maps), loaded only after the visitor accepts.
+// The choice is remembered in localStorage; with no Clarity ID configured nothing is added at all.
+export function analyticsSnippet({ clarity }) {
+  if (!clarity) return '';
+  const load = `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script",${JSON.stringify(clarity)});`;
+  return `<script>(function(){var K='analytics-consent',v;try{v=localStorage.getItem(K)}catch(e){}
+function go(){${load}}
+if(v==='yes')return go();if(v==='no')return;
+var b=document.createElement('div');b.className='consent';b.setAttribute('role','region');b.setAttribute('aria-label','Analytics');
+b.innerHTML='<p>This site uses Microsoft Clarity to see how far people scroll and where they click. It sets cookies. Fine with that?</p><div class="consent-b"><button type="button" data-v="yes">Accept</button><button type="button" data-v="no">Decline</button></div>';
+b.addEventListener('click',function(e){var t=e.target.closest('button');if(!t)return;var a=t.dataset.v;try{localStorage.setItem(K,a)}catch(e){}b.remove();if(a==='yes')go()});
+document.body.appendChild(b)})();</script>`;
 }
 
 export function header({ site, home, resume, current, minimal = false }) {

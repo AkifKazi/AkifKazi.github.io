@@ -412,3 +412,13 @@ html:not(.js) .progress,html:not(.js) .rail-progress{display:none}
   pre{max-height:none;white-space:pre-wrap}
   *{animation:none!important}
 }
+
+/* analytics consent notice */
+.consent{position:fixed;left:var(--g);right:var(--g);bottom:var(--g);z-index:50;max-width:30rem;margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:14px 16px;border:1px solid var(--line2);background:var(--surface-solid);box-shadow:var(--shade);font-size:.875rem;line-height:1.5}
+.consent p{margin:0;flex:1 1 14rem;color:var(--text)}
+.consent-b{display:flex;gap:8px}
+.consent button{min-height:40px;padding:0 16px;border:1px solid var(--line2);background:transparent;color:var(--strong);font:600 .75rem/1 var(--font);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:border-color .2s,color .2s}
+.consent button[data-v="yes"]{background:var(--btn);border-color:transparent;color:var(--ink)}
+.consent button:hover{border-color:var(--accent);color:var(--accent)}
+.consent button[data-v="yes"]:hover{color:var(--ink);filter:brightness(1.1)}
+@media(max-width:600px){.consent{margin-left:0;max-width:none}}

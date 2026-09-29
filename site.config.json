@@ -13,5 +13,5 @@
     { "label": "Behance", "href": "https://www.behance.net/akifkazi" }
   ],
   "license": { "label": "CC BY-NC-ND 4.0", "href": "https://creativecommons.org/licenses/by-nc-nd/4.0/" },
-  "analytics": { "clarity": "", "ga": "" }
+  "analytics": { "clarity": "" }
 }
